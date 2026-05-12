@@ -76,26 +76,42 @@ class DatabaseManager:
 
     def execute_raw_sql(self, query: str) -> Dict[str, Any]:
         """Executes a raw SQL statement and returns the result."""
+        import time
         if not self.engine:
             return {"error": "Engine not initialized."}
             
         try:
+            start_time = time.time()
             with self.engine.connect() as conn:
+                # Apply an execution timeout to prevent rogue queries from hanging the server
+                # Note: Support for this varies by dialect, but it's safe to pass generically
+                conn = conn.execution_options(timeout=30)
+                
                 result = conn.execute(text(query))
                 
                 if not result.returns_rows:
                     conn.commit()
-                    return {"success": True, "message": f"Query executed successfully. Rows affected: {result.rowcount}"}
+                    duration = round(time.time() - start_time, 3)
+                    logger.info(f"Write Query executed in {duration}s. Rows affected: {result.rowcount}")
+                    return {
+                        "success": True, 
+                        "message": f"Query executed successfully. Rows affected: {result.rowcount}",
+                        "execution_time_seconds": duration
+                    }
 
                 rows = result.fetchmany(config.MAX_ROWS + 1)
                 columns = list(result.keys())
                 
                 data = [dict(zip(columns, row)) for row in rows[:config.MAX_ROWS]]
                 
+                duration = round(time.time() - start_time, 3)
+                logger.info(f"Read Query executed in {duration}s. Rows returned: {len(data)}")
+                
                 response = {
                     "columns": columns,
                     "rows": data,
-                    "row_count": len(data)
+                    "row_count": len(data),
+                    "execution_time_seconds": duration
                 }
                 
                 if len(rows) > config.MAX_ROWS:

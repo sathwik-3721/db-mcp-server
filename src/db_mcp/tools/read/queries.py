@@ -26,3 +26,20 @@ def execute_read_query(query: str) -> Dict[str, Any]:
         return {"error": "Query blocked: Mutation keywords detected."}
         
     return db_manager.execute_raw_sql(query)
+
+def explain_query(query: str) -> Dict[str, Any]:
+    """Runs EXPLAIN on a query to get its execution plan."""
+    if not is_read_only(query):
+        logger.warning(f"Blocked potential mutation in EXPLAIN route: {query}")
+        return {"error": "Query blocked: Mutation keywords detected."}
+        
+    info = db_manager.get_database_info()
+    dialect = info.get("dialect", "").lower()
+    
+    if "sqlite" in dialect:
+        explain_sql = f"EXPLAIN QUERY PLAN {query}"
+    else:
+        explain_sql = f"EXPLAIN {query}"
+        
+    # Execute the EXPLAIN query without the MAX_ROWS limit affecting the plan output
+    return db_manager.execute_raw_sql(explain_sql)

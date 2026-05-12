@@ -7,9 +7,12 @@ from src.db_mcp.tools.read.metadata import (
     list_schemas as list_db_schemas,
     list_tables as list_db_tables,
     schema_discovery as do_schema_discovery,
-    check_db_connection as check_conn
+    check_db_connection as check_conn,
+    search_schema as do_search_schema,
+    get_table_ddl as do_get_table_ddl,
+    profile_column as do_profile_column
 )
-from src.db_mcp.tools.read.queries import execute_read_query, is_read_only
+from src.db_mcp.tools.read.queries import execute_read_query, is_read_only, explain_query as do_explain_query
 from src.db_mcp.tools.write.mutations import execute_write_query
 from src.db_mcp.core.config import config
 from src.db_mcp.core.logger import setup_logger
@@ -73,6 +76,30 @@ def schema_discovery(schema: Optional[str] = None) -> str:
     """Get full schema metadata (tables, columns, types) for a schema."""
     logger.info(f"Discovering schema metadata (schema={schema})")
     return json.dumps(do_schema_discovery(schema=schema), indent=2)
+
+@mcp.tool()
+def search_schema(keyword: str, schema: Optional[str] = None) -> str:
+    """Search for tables or columns containing a specific keyword."""
+    logger.info(f"Searching schema for keyword: '{keyword}' (schema={schema})")
+    return json.dumps(do_search_schema(keyword=keyword, schema=schema), indent=2)
+
+@mcp.tool()
+def get_table_ddl(table: str, schema: Optional[str] = None) -> str:
+    """Generate exact CREATE TABLE statement (DDL) for a specific table."""
+    logger.info(f"Getting DDL for table: {table} (schema={schema})")
+    return do_get_table_ddl(table=table, schema=schema)
+
+@mcp.tool()
+def profile_column(table: str, column: str, schema: Optional[str] = None) -> str:
+    """Profile a column to get min, max, null percentage, and distinct count."""
+    logger.info(f"Profiling column {table}.{column} (schema={schema})")
+    return json.dumps(do_profile_column(table=table, column=column, schema=schema), indent=2)
+
+@mcp.tool()
+def explain_query(sql: str) -> str:
+    """Runs an EXPLAIN dry-run on a query to get its database execution plan without committing."""
+    logger.info("Running EXPLAIN on query")
+    return json.dumps(do_explain_query(sql), indent=2, default=str)
 
 @mcp.tool()
 def get_database_info() -> str:
