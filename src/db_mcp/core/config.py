@@ -9,13 +9,17 @@ class Config:
     
     DATABASE_URL = os.environ.get("DATABASE_URL")
     
-    # If ALLOW_MUTATIONS is not explicitly "true", default to False for safety
+    # Security Policies
     ALLOW_MUTATIONS = os.environ.get("ALLOW_MUTATIONS", "false").lower() == "true"
     
-    # Limit row count to prevent LLM context overflow
+    # Pagination / Context limits
     try:
         MAX_ROWS = int(os.environ.get("MAX_ROWS", "100"))
     except ValueError:
         MAX_ROWS = 100
+
+    # Logging
+    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+    LOG_FORMAT = os.environ.get("LOG_FORMAT", "text").lower()
 
 config = Config()

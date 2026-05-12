@@ -1,6 +1,9 @@
 import re
 from typing import Dict, Any
-from src.core.db import db_manager
+from src.db_mcp.core.db import db_manager
+from src.db_mcp.core.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 def is_read_only(query: str) -> bool:
     """Basic validation to ensure query does not contain mutation keywords."""
@@ -18,10 +21,8 @@ def is_read_only(query: str) -> bool:
 
 def execute_read_query(query: str) -> Dict[str, Any]:
     """Executes a strictly read-only SQL query against the database."""
-    if not db_manager:
-        return {"error": "Database Manager not initialized."}
-        
     if not is_read_only(query):
-        return {"error": "Query blocked: Mutation keywords detected in read-only operation."}
+        logger.warning(f"Blocked potential mutation in read-only route: {query}")
+        return {"error": "Query blocked: Mutation keywords detected."}
         
     return db_manager.execute_raw_sql(query)
